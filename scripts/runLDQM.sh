@@ -17,9 +17,9 @@ DEBUG=""
 FILEPATH="$DATA_PATH/Cosmics"
 FINALCHUNK=$((-1))
 INITIALCHUNK=$((0))
-LOCALREADOUT=""
+LOCALREADOUT="true"
 RUNNUMBER=""
-UNPACKERHEADER="ferol"
+UNPACKERHEADER="sdram" #"sdram" or "ferol"
 
 # Get Options
 OPTIND=1
@@ -61,6 +61,7 @@ then
     echo RUNNUMBER ${RUNNUMBER}
     echo INITIALCHUNK ${INITIALCHUNK}
     echo FINALCHUNK ${FINALCHUNK}
+    echo LOCALREADOUT ${LOCALREADOUT}
 fi
 
 # Create the run number string
@@ -84,13 +85,17 @@ if [ -n "$LOCALREADOUT" ]; then
     #########################
     ##### Local Readout #####
     #########################
-
+    echo runstring  ${RUNSTRING}
+    
     # Loop over files found in FILEPATH
-    for file in ${FILEPATH}/run${RUNSTRING}_Cosmic_CERNQC8_*_chunk_*.dat
+    # for file in ${FILEPATH}/run${RUNSTRING}_Cosmic_CERNQC8_*_chunk_*.dat
+    for file in ${FILEPATH}/run000000_Testing_CERN904_*_chunk_*.dat
     do
         # Determine this chunk number
-        chunkNumber=$(echo $file 2>/dev/null | awk -F _ '{ print $7 }' 2>/dev/null | awk -F . '{print $1}' )
-
+        chunkNumber=$(echo $file 2>/dev/null | awk -F _ '{ print $6 }' 2>/dev/null | awk -F . '{print $1}' )
+        
+        echo chunkNumber ${chunkNumber}
+                           
         # Skip chunk files below initial number
         if (( ${chunkNumber} < ${INITIALCHUNK} )); then
             if [ -n "$DEBUG" ]; then
@@ -124,8 +129,9 @@ if [ -n "$LOCALREADOUT" ]; then
     echo "Finished unpacker loop, now adding raw files together"
 
     # Add raw.root files together
-    FINALRAWFILE=$(ls ${FILEPATH}/run${RUNSTRING}_Cosmic_CERNQC8_*_chunk_*.raw.root | grep "chunk_${INITIALCHUNK}.raw.root")
+    FINALRAWFILE=$(ls ${FILEPATH}/run${RUNSTRING}_Testing_CERN904_*_chunk_*.raw.root | grep "chunk_${INITIALCHUNK}.raw.root")
     FINALRAWFILE="${FINALRAWFILE%"_chunk_${INITIALCHUNK}.raw.root"}.raw.root"
+    echo " the target file is FINALRAWFILE " ${FINALRAWFILE}
 else
     #########################
     ##### FEDKit Readout ####
@@ -188,7 +194,7 @@ fi
 
 if [ -n "$DEBUG" ]; then
     echo ""
-    echo "hadd -k ${FINALRAWFILE} ${FILELIST}"
+    echo "hadd -f ${FINALRAWFILE} ${FILELIST}"
     echo ""
 else
     if [ -f ${FINALRAWFILE} ]; then
@@ -196,7 +202,7 @@ else
         echo "rm ${FINALRAWFILE}"
         rm ${FINALRAWFILE}
     fi
-    hadd -k ${FINALRAWFILE} ${FILELIST}
+    hadd -f ${FINALRAWFILE} ${FILELIST}
 fi
 
 echo "Finished adding raw files together, now running dqm"
